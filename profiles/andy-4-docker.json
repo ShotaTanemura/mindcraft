@@ -1,0 +1,11 @@
+{
+    "name": "andy_4",
+
+    "model": {
+        "api": "ollama",
+        "model": "sweaterdog/andy-4:micro-q8_0",
+        "url": "http://host.docker.internal:11434"
+    },
+
+    "embedding": "ollama"
+}

@@ -217,7 +217,8 @@ export function createMindServer(host_public = false, port = 8080) {
         });
     });
 
-    const host = '0.0.0.0';
+    // Default to localhost for security. Set MINDSERVER_HOST=0.0.0.0 for Docker or host_public=true for network access
+    const host = process.env.MINDSERVER_HOST || (host_public ? '0.0.0.0' : 'localhost');
     server.listen(port, host, () => {
         console.log(`MindServer running on port ${port} on host ${host}`);
     });

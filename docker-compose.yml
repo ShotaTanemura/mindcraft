@@ -2,6 +2,7 @@ services:
   mindcraft:
     build: .
     environment:
+      MINDSERVER_HOST: "0.0.0.0"
       SETTINGS_JSON: |
         {"auto_open_ui": false}
     volumes:
@@ -11,7 +12,7 @@ services:
       - ./bots:/app/bots
     ports:
       - "3000-3003:3000-3003" # see the view from the camera mounted on your bot head: http://localhost:3000/
-      - "8080:8080" # Mindserver port
+      - "127.0.0.1:8080:8080" # Mindserver port (bound to localhost for security)
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
