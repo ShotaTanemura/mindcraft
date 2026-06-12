@@ -2,6 +2,10 @@
     "name": "andy_4",
 
     "model": "ollama/sweaterdog/andy-4:micro-q8_0",
-    
-    "embedding": "ollama"
+    "url": "http://host.docker.internal:11434",
+
+    "embedding": {
+        "api": "ollama",
+        "url": "http://host.docker.internal:11434"
+    }
 }

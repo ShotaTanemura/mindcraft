@@ -276,15 +276,14 @@ export function createMindServer(host_public = false, port = 8080) {
         });
     });
 
-    if (host_public) {
-        console.log('Public hosting not supported yet. Using localhost.');
-    }
-    const host = 'localhost';
-    server.listen(port, host, () => {
-        console.log(`MindServer running on port ${port} on host ${host}`);
-    });
+    const host = host_public ? '0.0.0.0' : '0.0.0.0';
 
-    return server;
+    return new Promise((resolve) => {
+        server.listen(port, host, () => {
+            console.log(`MindServer running on port ${port} on host ${host}`);
+            resolve(server);
+        });
+    });
 }
 
 function agentsStatusUpdate(socket) {
