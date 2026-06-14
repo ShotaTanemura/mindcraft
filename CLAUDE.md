@@ -35,3 +35,7 @@ Multi-process LLM Minecraft bots via Mineflayer. Each bot runs in an isolated ch
 - `patch-package` patches in `patches/` for mineflayer/prismarine deps
 - No test framework — validation is via running bots in Minecraft
 - New LLM provider: create `src/models/{name}.js` with the same interface as existing adapters
+
+## REST API
+
+`POST /api/message` — send instructions to a bot without a Minecraft client. See [docs/agents/rest-api.md](docs/agents/rest-api.md).
