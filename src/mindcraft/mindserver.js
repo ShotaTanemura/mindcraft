@@ -76,6 +76,24 @@ export function createMindServer(host_public = false, port = 8080) {
         res.json({ status: 'ok' });
     });
 
+    app.get('/api/status', async (req, res) => {
+        const entries = await Promise.all(
+            Object.entries(agent_connections).map(async ([name, conn]) => {
+                if (!conn.in_game || !conn.socket)
+                    return [name, { in_game: false }];
+                try {
+                    const state = await conn.socket.timeout(3000).emitWithAck('get-full-state');
+                    if (state?.error)
+                        return [name, { in_game: true, error: state.error }];
+                    return [name, { in_game: true, state }];
+                } catch (e) {
+                    return [name, { in_game: conn.in_game, error: e.message }];
+                }
+            })
+        );
+        res.json(Object.fromEntries(entries));
+    });
+
     // Return JSON for malformed request bodies instead of Express's default HTML
     app.use((err, req, res, next) => {
         if (err.type === 'entity.parse.failed')

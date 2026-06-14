@@ -76,7 +76,7 @@ class MindServerProxy {
                 callback(state);
             } catch (error) {
                 console.error('Error getting full state:', error);
-                callback(null);
+                callback({ error: error.message });
             }
         });
 
