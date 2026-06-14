@@ -5,7 +5,7 @@ Multi-process LLM Minecraft bots via Mineflayer. Each bot runs in an isolated ch
 ## Commands
 
 - `node main.js` - Start with profiles from settings.js
-- `node main.js --profiles ./profiles/andy.json` - Start specific profile
+- `node main.js --profiles andy.json` - Start specific profile
 - `node main.js --task_path tasks/basic/single_agent.json --task_id gather_oak_logs` - Run a task
 
 ## Architecture
