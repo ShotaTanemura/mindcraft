@@ -263,9 +263,15 @@ export class Prompter {
             }
 
             if (generation?.includes('</think>')) {
-                const [_, afterThink] = generation.split('</think>')
-                generation = afterThink
+                const [thinkPart, afterThink] = generation.split('</think>');
+                this.agent.lastThinking = thinkPart.startsWith('<think>')
+                    ? thinkPart.slice(7).trim() || null
+                    : null;
+                generation = afterThink;
+            } else {
+                this.agent.lastThinking = null;
             }
+            this.agent.lastResponse = generation?.trim() || null;
 
             return generation;
         }
