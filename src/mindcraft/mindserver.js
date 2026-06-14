@@ -53,6 +53,35 @@ export function createMindServer(host_public = false, port = 8080) {
     // Serve static files
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     app.use(express.static(path.join(__dirname, 'public')));
+    app.use(express.json());
+
+    app.post('/api/message', (req, res) => {
+        const { agent: rawAgent, message: rawMessage } = req.body ?? {};
+
+        if (typeof rawAgent !== 'string' || !rawAgent.trim())
+            return res.status(400).json({ error: "'agent' is required" });
+        if (typeof rawMessage !== 'string' || !rawMessage.trim())
+            return res.status(400).json({ error: "'message' is required" });
+
+        const agentName = rawAgent.trim();
+        const message = rawMessage.trim();
+
+        const conn = agent_connections[agentName];
+        if (!conn)
+            return res.status(404).json({ error: `agent '${agentName}' not found` });
+        if (!conn.in_game || !conn.socket)
+            return res.status(404).json({ error: `agent '${agentName}' not in game` });
+
+        conn.socket.emit('send-message', { from: 'ADMIN', message });
+        res.json({ status: 'ok' });
+    });
+
+    // Return JSON for malformed request bodies instead of Express's default HTML
+    app.use((err, req, res, next) => {
+        if (err.type === 'entity.parse.failed')
+            return res.status(400).json({ error: 'invalid JSON body' });
+        next(err);
+    });
 
     // Texture proxy: resolve item/block textures using minecraft-assets with version fallback
     app.get('/assets/item/:agent/:name.png', async (req, res) => {
@@ -278,10 +307,6 @@ export function createMindServer(host_public = false, port = 8080) {
 
     // Default to localhost for security. Set MINDSERVER_HOST=0.0.0.0 for Docker or host_public=true for network access
     const host = process.env.MINDSERVER_HOST || (host_public ? '0.0.0.0' : 'localhost');
-    server.listen(port, host, () => {
-        console.log(`MindServer running on port ${port} on host ${host}`);
-    });
-
     return new Promise((resolve) => {
         server.listen(port, host, () => {
             console.log(`MindServer running on port ${port} on host ${host}`);

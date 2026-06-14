@@ -63,6 +63,7 @@ class MindServerProxy {
 		
         this.socket.on('send-message', (data) => {
             try {
+                if (!this.agent?.respondFunc) return;
                 this.agent.respondFunc(data.from, data.message);
             } catch (error) {
                 console.error('Error: ', JSON.stringify(error, Object.getOwnPropertyNames(error)));
