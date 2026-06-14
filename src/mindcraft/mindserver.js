@@ -87,7 +87,7 @@ export function createMindServer(host_public = false, port = 8080) {
                         return [name, { in_game: true, error: state.error }];
                     return [name, { in_game: true, state }];
                 } catch (e) {
-                    return [name, { in_game: conn.in_game, error: e.message }];
+                    return [name, { in_game: false, error: e?.message ?? String(e) }];
                 }
             })
         );
