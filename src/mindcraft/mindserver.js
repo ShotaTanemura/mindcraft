@@ -56,12 +56,15 @@ export function createMindServer(host_public = false, port = 8080) {
     app.use(express.json());
 
     app.post('/api/message', (req, res) => {
-        const { agent: agentName, message } = req.body ?? {};
+        const { agent: rawAgent, message: rawMessage } = req.body ?? {};
 
-        if (typeof agentName !== 'string' || !agentName.trim())
+        if (typeof rawAgent !== 'string' || !rawAgent.trim())
             return res.status(400).json({ error: "'agent' is required" });
-        if (typeof message !== 'string' || !message.trim())
+        if (typeof rawMessage !== 'string' || !rawMessage.trim())
             return res.status(400).json({ error: "'message' is required" });
+
+        const agentName = rawAgent.trim();
+        const message = rawMessage.trim();
 
         const conn = agent_connections[agentName];
         if (!conn)
@@ -69,7 +72,7 @@ export function createMindServer(host_public = false, port = 8080) {
         if (!conn.in_game || !conn.socket)
             return res.status(404).json({ error: `agent '${agentName}' not in game` });
 
-        conn.socket.emit('send-message', { from: 'api', message });
+        conn.socket.emit('send-message', { from: 'ADMIN', message });
         res.json({ status: 'ok' });
     });
 
