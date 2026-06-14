@@ -68,7 +68,7 @@ export function selectAPI(profile) {
         }
     }
     if (!apiMap[profile.api]) {
-        throw new Error('Unknown api:', profile.api);
+        throw new Error(`Unknown api: ${profile.api}`);
     }
     profile.model = profile.model?.replace(profile.api + '/', '') || null;
     return profile;
@@ -81,7 +81,7 @@ export function createModel(profile) {
         profile.model = null;
     }
     if (!apiMap[profile.api]) {
-        throw new Error('Unknown api:', profile.api);
+        throw new Error(`Unknown api: ${profile.api}`);
     }
     const model = new apiMap[profile.api](profile.model, profile.url, profile.params);
     return model;

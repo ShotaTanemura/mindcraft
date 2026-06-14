@@ -96,7 +96,11 @@ export class Prompter {
             this.embedding_model = createModel(embedding_model_profile);
         }
         else {
-            this.embedding_model = createModel({api: chat_model_profile.api, url: chat_model_profile.url, params: chat_model_profile.params});
+            this.embedding_model = createModel({
+                api: chat_model_profile.api,
+                url: chat_model_profile.url,
+                params: chat_model_profile.params
+            });
         }
 
         this.skill_libary = new SkillLibrary(agent, this.embedding_model);
