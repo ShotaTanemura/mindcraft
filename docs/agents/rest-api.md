@@ -2,11 +2,15 @@
 
 MindServer exposes an HTTP endpoint for sending instructions to bots without a Minecraft client.
 
+**Security Note:** This endpoint is currently unauthenticated. When binding to `0.0.0.0` or running on a shared network, ensure proper network isolation or add authentication middleware to prevent unauthorized access.
+
 ## POST /api/message
 
 Send a natural-language message to a named bot. The message is forwarded to the agent's LLM pipeline (same path as in-game chat). The response is fire-and-forget — 200 means the message was dispatched, not that the bot completed the action.
 
 Both `agent` and `message` are trimmed before processing.
+
+**Configuration:** The default endpoint is `http://localhost:8080/api/message`. Host and port are configurable via `settings.mindserver_port`, `MINDSERVER_PORT` environment variable, and `MINDSERVER_HOST` (defaults to `localhost` for security; set to `0.0.0.0` for network access or Docker deployments).
 
 ```
 POST http://localhost:8080/api/message
