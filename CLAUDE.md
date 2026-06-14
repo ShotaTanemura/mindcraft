@@ -35,3 +35,28 @@ Multi-process LLM Minecraft bots via Mineflayer. Each bot runs in an isolated ch
 - `patch-package` patches in `patches/` for mineflayer/prismarine deps
 - No test framework — validation is via running bots in Minecraft
 - New LLM provider: create `src/models/{name}.js` with the same interface as existing adapters
+
+## REST API
+
+MindServer exposes an HTTP endpoint for sending instructions to bots without a Minecraft client.
+
+### POST /api/message
+
+Send a natural-language message to a named bot. Routed through the same LLM pipeline as in-game chat.
+
+```
+POST http://localhost:8080/api/message
+Content-Type: application/json
+
+{ "agent": "Andy", "message": "go mine some wood" }
+```
+
+| Status | Condition | Body |
+|--------|-----------|------|
+| 200 | Success | `{"status": "ok"}` |
+| 400 | Missing/empty `agent` or `message` | `{"error": "'agent' is required"}` |
+| 400 | Malformed JSON | `{"error": "invalid JSON body"}` |
+| 404 | Agent not registered | `{"error": "agent 'Andy' not found"}` |
+| 404 | Agent not in game | `{"error": "agent 'Andy' not in game"}` |
+
+The sender label is `ADMIN` (matching the browser UI's `send-message` handler), so `only_chat_with` profile rules apply identically to REST and UI messages.
