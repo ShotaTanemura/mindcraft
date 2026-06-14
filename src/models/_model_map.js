@@ -68,10 +68,9 @@ export function selectAPI(profile) {
         }
     }
     if (!apiMap[profile.api]) {
-        throw new Error('Unknown api:', profile.api);
+        throw new Error(`Unknown api: ${profile.api}`);
     }
-    let model_name = profile.model.replace(profile.api + '/', ''); // remove prefix
-    profile.model = model_name === "" ? null : model_name; // if model is empty, set to null
+    profile.model = profile.model?.replace(profile.api + '/', '') || null;
     return profile;
 }
 
@@ -82,7 +81,7 @@ export function createModel(profile) {
         profile.model = null;
     }
     if (!apiMap[profile.api]) {
-        throw new Error('Unknown api:', profile.api);
+        throw new Error(`Unknown api: ${profile.api}`);
     }
     const model = new apiMap[profile.api](profile.model, profile.url, profile.params);
     return model;
