@@ -22,6 +22,8 @@ export class Agent {
     async start(load_mem=false, init_message=null, count_id=0) {
         this.last_sender = null;
         this.count_id = count_id;
+        this.lastThinking = null;
+        this.lastResponse = null;
         this._disconnectHandled = false;
 
         // Initialize components

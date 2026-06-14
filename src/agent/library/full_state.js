@@ -101,6 +101,18 @@ export function getFullState(agent) {
         },
         modes: {
             summary: bot.modes.getMiniDocs()
+        },
+        reasoning: {
+            thinking: agent.lastThinking ?? null,
+            response: agent.lastResponse ?? null,
+            chat_history: agent.history?.turns?.slice(-5) ?? [],
+            memory: agent.history?.memory ?? '',
+            self_prompter: {
+                goal: agent.self_prompter?.prompt || null,
+                state: agent.self_prompter?.isActive?.() ? 'active'
+                     : agent.self_prompter?.isPaused?.() ? 'paused'
+                     : 'stopped'
+            }
         }
     };
 
