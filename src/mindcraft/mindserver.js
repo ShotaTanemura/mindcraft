@@ -81,7 +81,16 @@ export function createMindServer(host_public = false, port = 8080) {
             return res.status(503).json({ error: 'agent not responding' });
         }
 
-        taskRegistry.interrupt(agentName);
+        const oldTask = taskRegistry.getCurrentForAgent(agentName);
+        if (oldTask) {
+            try {
+                const agentState = await conn.socket.timeout(1000).emitWithAck('get-task-state', { startTurnId: oldTask.startTurnId });
+                taskRegistry.interrupt(agentName, agentState?.chatHistory ?? []);
+            } catch {
+                taskRegistry.interrupt(agentName, []);
+            }
+        }
+
         const task = taskRegistry.create(agentName, turnId);
 
         if (!conn.in_game || !conn.socket) {
@@ -126,7 +135,7 @@ export function createMindServer(host_public = false, port = 8080) {
 
         const conn = agent_connections[task.agentName];
         if (!conn || !conn.in_game || !conn.socket) {
-            taskRegistry.interruptTask(task.id, 'agent_disconnected');
+            taskRegistry.interruptTask(task.id, 'agent_disconnected', []);
             return res.json({
                 status: 'interrupted',
                 reason: 'agent_disconnected',
@@ -140,28 +149,33 @@ export function createMindServer(host_public = false, port = 8080) {
                 { startTurnId: task.startTurnId }
             );
 
-            const isFullyIdle = agentState.idle && !agentState.selfPrompterActive && !agentState.loopActive;
-            const historyAdvanced = agentState.chatHistory.length > 0;
+            const idle = agentState?.idle ?? false;
+            const selfPrompterActive = agentState?.selfPrompterActive ?? false;
+            const loopActive = agentState?.loopActive ?? false;
+            const chatHistory = agentState?.chatHistory ?? [];
+
+            const isFullyIdle = idle && !selfPrompterActive && !loopActive;
+            const historyAdvanced = chatHistory.length > 0;
 
             if (isFullyIdle && historyAdvanced) {
                 let reason = 'goal_ended';
-                const lastMessage = agentState.chatHistory[agentState.chatHistory.length - 1]?.content ?? '';
-                if (!agentState.selfPrompterActive && lastMessage.includes('did not use command')) {
+                const lastMessage = chatHistory[chatHistory.length - 1]?.content ?? '';
+                if (!selfPrompterActive && lastMessage.includes('did not use command')) {
                     reason = 'no_command';
                 }
 
-                taskRegistry.finish(task.id, reason, agentState.chatHistory);
+                taskRegistry.finish(task.id, reason, chatHistory);
                 return res.json({
                     status: 'finished',
                     reason,
-                    chat_history: agentState.chatHistory
+                    chat_history: chatHistory
                 });
             }
 
             return res.json({
                 status: 'running',
                 reason: null,
-                chat_history: agentState.chatHistory
+                chat_history: chatHistory
             });
         } catch {
             return res.json({

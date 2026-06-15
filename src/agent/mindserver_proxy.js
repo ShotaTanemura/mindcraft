@@ -81,6 +81,7 @@ class MindServerProxy {
         });
 
         this.socket.on('get-turn-counter', (callback) => {
+            if (typeof callback !== 'function') return;
             try {
                 const turnId = this.agent?.history?.turnCounter ?? 0;
                 callback({ turnId });
@@ -90,6 +91,7 @@ class MindServerProxy {
         });
 
         this.socket.on('get-task-state', (data, callback) => {
+            if (typeof callback !== 'function') return;
             try {
                 const agent = this.agent;
                 const startTurnId = data?.startTurnId ?? 0;

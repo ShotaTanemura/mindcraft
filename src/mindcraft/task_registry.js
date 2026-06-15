@@ -39,25 +39,25 @@ export class TaskRegistry {
         return null;
     }
 
-    interrupt(agentName) {
+    interrupt(agentName, chatHistory = []) {
         const current = this.getCurrentForAgent(agentName);
         if (current) {
             current.status = 'interrupted';
             current.reason = 'interrupted';
             current.completedAt = Date.now();
-            current.chatHistory = [];
+            current.chatHistory = chatHistory;
             this.agentCurrentTask.delete(agentName);
         }
         return current;
     }
 
-    interruptTask(taskId, reason) {
+    interruptTask(taskId, reason, chatHistory = []) {
         const task = this.tasks.get(taskId);
         if (!task || task.status !== 'running') return;
         task.status = 'interrupted';
         task.reason = reason;
         task.completedAt = Date.now();
-        task.chatHistory = [];
+        task.chatHistory = chatHistory;
         if (this.agentCurrentTask.get(task.agentName) === taskId) {
             this.agentCurrentTask.delete(task.agentName);
         }
