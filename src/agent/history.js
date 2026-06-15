@@ -13,6 +13,7 @@ export class History {
         mkdirSync(`./bots/${this.name}/histories`, { recursive: true });
 
         this.turns = [];
+        this.turnCounter = 0;
 
         // Natural language memory as a summary of recent messages + previous memory
         this.memory = '';
@@ -21,7 +22,7 @@ export class History {
         this.max_messages = settings.max_messages;
 
         // Number of messages to remove from current history and save into memory
-        this.summary_chunk_size = 5; 
+        this.summary_chunk_size = 5;
         // chunking reduces expensive calls to promptMemSaving and appendFullHistory
         // and improves the quality of the memory summary
     }
@@ -67,7 +68,8 @@ export class History {
             role = 'user';
             content = `${name}: ${content}`;
         }
-        this.turns.push({role, content});
+        const turn = {role, content, turnId: ++this.turnCounter};
+        this.turns.push(turn);
 
         if (this.turns.length >= this.max_messages) {
             let chunk = this.turns.splice(0, this.summary_chunk_size);
@@ -84,6 +86,7 @@ export class History {
             const data = {
                 memory: this.memory,
                 turns: this.turns,
+                turnCounter: this.turnCounter,
                 self_prompting_state: this.agent.self_prompter.state,
                 self_prompt: this.agent.self_prompter.isStopped() ? null : this.agent.self_prompter.prompt,
                 taskStart: this.agent.task.taskStartTime,
@@ -106,6 +109,16 @@ export class History {
             const data = JSON.parse(readFileSync(this.memory_fp, 'utf8'));
             this.memory = data.memory || '';
             this.turns = data.turns || [];
+            this.turnCounter = data.turnCounter ?? 0;
+
+            // Migrate pre-upgrade turns: assign turnIds if missing
+            if (this.turns.length > 0 && this.turns[0].turnId === undefined) {
+                this.turnCounter = 0;
+                for (const turn of this.turns) {
+                    turn.turnId = ++this.turnCounter;
+                }
+            }
+
             console.log('Loaded memory:', this.memory);
             return data;
         } catch (error) {

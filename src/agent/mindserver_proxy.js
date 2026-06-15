@@ -80,6 +80,37 @@ class MindServerProxy {
             }
         });
 
+        this.socket.on('get-turn-counter', (callback) => {
+            try {
+                const turnId = this.agent?.history?.turnCounter ?? 0;
+                callback({ turnId });
+            } catch (error) {
+                callback({ turnId: 0 });
+            }
+        });
+
+        this.socket.on('get-task-state', (data, callback) => {
+            try {
+                const agent = this.agent;
+                const startTurnId = data?.startTurnId ?? 0;
+                const chatHistory = agent?.history?.turns?.filter(t => t.turnId > startTurnId) ?? [];
+
+                callback({
+                    idle: agent?.isIdle() ?? true,
+                    selfPrompterActive: agent?.self_prompter?.isActive() ?? false,
+                    loopActive: agent?.self_prompter?.loop_active ?? false,
+                    chatHistory
+                });
+            } catch (error) {
+                callback({
+                    idle: true,
+                    selfPrompterActive: false,
+                    loopActive: false,
+                    chatHistory: []
+                });
+            }
+        });
+
         // Request settings and wait for response
         await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
