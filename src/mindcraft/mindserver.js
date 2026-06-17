@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as mindcraft from './mindcraft.js';
 import { readFileSync } from 'fs';
+import { taskRegistry } from './task_registry.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Mindserver is:
@@ -55,7 +56,7 @@ export function createMindServer(host_public = false, port = 8080) {
     app.use(express.static(path.join(__dirname, 'public')));
     app.use(express.json());
 
-    app.post('/api/message', (req, res) => {
+    app.post('/api/message', async (req, res) => {
         const { agent: rawAgent, message: rawMessage } = req.body ?? {};
 
         if (typeof rawAgent !== 'string' || !rawAgent.trim())
@@ -72,8 +73,33 @@ export function createMindServer(host_public = false, port = 8080) {
         if (!conn.in_game || !conn.socket)
             return res.status(404).json({ error: `agent '${agentName}' not in game` });
 
+        let turnId = 0;
+        try {
+            const result = await conn.socket.timeout(3000).emitWithAck('get-turn-counter');
+            turnId = result?.turnId ?? 0;
+        } catch {
+            return res.status(503).json({ error: 'agent not responding' });
+        }
+
+        const oldTask = taskRegistry.getCurrentForAgent(agentName);
+        if (oldTask) {
+            try {
+                const agentState = await conn.socket.timeout(1000).emitWithAck('get-task-state', { startTurnId: oldTask.startTurnId });
+                taskRegistry.interrupt(agentName, agentState?.chatHistory ?? []);
+            } catch {
+                taskRegistry.interrupt(agentName, []);
+            }
+        }
+
+        const task = taskRegistry.create(agentName, turnId);
+
+        if (!conn.in_game || !conn.socket) {
+            taskRegistry.interruptTask(task.id, 'agent_disconnected');
+            return res.status(503).json({ error: 'agent disconnected' });
+        }
+
         conn.socket.emit('send-message', { from: 'ADMIN', message });
-        res.json({ status: 'ok' });
+        res.json({ status: 'ok', task_id: task.id });
     });
 
     app.get('/api/status', async (req, res) => {
@@ -92,6 +118,72 @@ export function createMindServer(host_public = false, port = 8080) {
             })
         );
         res.json(Object.fromEntries(entries));
+    });
+
+    app.get('/api/tasks/:id', async (req, res) => {
+        const task = taskRegistry.get(req.params.id);
+        if (!task)
+            return res.status(404).json({ error: 'task not found' });
+
+        if (task.status !== 'running') {
+            return res.json({
+                status: task.status,
+                reason: task.reason,
+                chat_history: task.chatHistory ?? []
+            });
+        }
+
+        const conn = agent_connections[task.agentName];
+        if (!conn || !conn.in_game || !conn.socket) {
+            taskRegistry.interruptTask(task.id, 'agent_disconnected', []);
+            return res.json({
+                status: 'interrupted',
+                reason: 'agent_disconnected',
+                chat_history: []
+            });
+        }
+
+        try {
+            const agentState = await conn.socket.timeout(3000).emitWithAck(
+                'get-task-state',
+                { startTurnId: task.startTurnId }
+            );
+
+            const idle = agentState?.idle ?? false;
+            const selfPrompterActive = agentState?.selfPrompterActive ?? false;
+            const loopActive = agentState?.loopActive ?? false;
+            const chatHistory = agentState?.chatHistory ?? [];
+
+            const isFullyIdle = idle && !selfPrompterActive && !loopActive;
+            const historyAdvanced = chatHistory.length > 0;
+
+            if (isFullyIdle && historyAdvanced) {
+                let reason = 'goal_ended';
+                const lastMessage = chatHistory[chatHistory.length - 1]?.content ?? '';
+                if (!selfPrompterActive && lastMessage.includes('did not use command')) {
+                    reason = 'no_command';
+                }
+
+                taskRegistry.finish(task.id, reason, chatHistory);
+                return res.json({
+                    status: 'finished',
+                    reason,
+                    chat_history: chatHistory
+                });
+            }
+
+            return res.json({
+                status: 'running',
+                reason: null,
+                chat_history: chatHistory
+            });
+        } catch {
+            return res.json({
+                status: 'running',
+                reason: null,
+                chat_history: []
+            });
+        }
     });
 
     // Return JSON for malformed request bodies instead of Express's default HTML
